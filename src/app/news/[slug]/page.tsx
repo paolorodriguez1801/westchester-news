@@ -1,0 +1,190 @@
+import { notFound } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
+import type { Metadata } from "next";
+import { getArticleBySlug, getRelatedArticles } from "@/lib/db/queries";
+import { formatDate } from "@/lib/utils";
+import ShareButtons from "@/components/ShareButtons";
+import ArticleCard from "@/components/ArticleCard";
+
+interface PageProps {
+  params: Promise<{ slug: string }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const article = await getArticleBySlug(slug);
+  if (!article) return { title: "Article Not Found" };
+
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL || "https://westchesternewstoday.com";
+  const canonicalUrl = `${siteUrl}/news/${article.slug}`;
+  const description =
+    article.summary.length > 155
+      ? article.summary.substring(0, 152) + "..."
+      : article.summary;
+
+  return {
+    title: article.title,
+    description,
+    keywords: article.tags?.join(", "),
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title: article.title,
+      description,
+      type: "article",
+      url: canonicalUrl,
+      images: article.image_url
+        ? [{ url: article.image_url, alt: article.image_alt || article.title }]
+        : undefined,
+      publishedTime: article.published_at,
+      section: article.category_name,
+      tags: article.tags || undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: article.title,
+      description,
+      images: article.image_url ? [article.image_url] : undefined,
+    },
+    other: {
+      "news_keywords": article.tags?.join(", ") || "",
+    },
+  };
+}
+
+export default async function ArticlePage({ params }: PageProps) {
+  const { slug } = await params;
+  const article = await getArticleBySlug(slug);
+  if (!article) notFound();
+
+  const relatedArticles = await getRelatedArticles(
+    article.category_id,
+    article.id,
+    4
+  );
+
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL || "https://westchesternewstoday.com";
+  const canonicalUrl = `${siteUrl}/news/${article.slug}`;
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    headline: article.title,
+    description: article.summary,
+    image: article.image_url,
+    datePublished: article.published_at,
+    dateModified: article.published_at,
+    author: {
+      "@type": "Organization",
+      name: "Westchester News Today",
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "Westchester News Today",
+      logo: {
+        "@type": "ImageObject",
+        url: `${siteUrl}/logo.png`,
+      },
+    },
+    mainEntityOfPage: canonicalUrl,
+    articleSection: article.category_name,
+    keywords: article.tags?.join(", "),
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
+      <article className="mx-auto max-w-4xl px-4 py-8">
+        {article.category_name && (
+          <Link
+            href={`/category/${article.category_slug}`}
+            className="inline-block text-sm font-semibold text-accent uppercase tracking-wider mb-3 hover:text-accent-dark"
+          >
+            {article.category_name}
+          </Link>
+        )}
+
+        <h1 className="text-3xl md:text-4xl font-extrabold text-navy leading-tight mb-4">
+          {article.title}
+        </h1>
+
+        <div className="flex items-center gap-4 text-sm text-gray-500 mb-6">
+          <time dateTime={article.published_at}>
+            {formatDate(article.published_at)}
+          </time>
+        </div>
+
+        {article.image_url && (
+          <div className="relative aspect-video rounded-lg overflow-hidden mb-8 bg-gray-100">
+            <Image
+              src={article.image_url}
+              alt={article.image_alt || article.title}
+              fill
+              className="object-cover"
+              sizes="(max-width: 896px) 100vw, 896px"
+              priority
+            />
+          </div>
+        )}
+
+        <div className="bg-blue-50 border-l-4 border-navy rounded-r-lg p-5 mb-8">
+          <p className="text-gray-800 font-medium leading-relaxed">
+            {article.summary}
+          </p>
+        </div>
+
+        <div
+          className="prose max-w-none mb-8"
+          dangerouslySetInnerHTML={{ __html: article.content }}
+        />
+
+        {article.source_name && (
+          <div className="border-t border-gray-200 pt-4 mb-8 text-sm text-gray-500">
+            Source: <strong>{article.source_name}</strong>
+            {article.source_url && (
+              <>
+                {" "}
+                | Original article:{" "}
+                <a
+                  href={article.source_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-accent hover:text-accent-dark underline"
+                >
+                  {article.source_url}
+                </a>
+              </>
+            )}
+          </div>
+        )}
+
+        <div className="border-t border-gray-200 pt-4 mb-12">
+          <ShareButtons url={canonicalUrl} title={article.title} />
+        </div>
+      </article>
+
+      {relatedArticles.length > 0 && (
+        <section className="bg-gray-50 py-10">
+          <div className="mx-auto max-w-7xl px-4">
+            <h2 className="text-2xl font-bold text-navy mb-6 border-b-2 border-accent pb-2">
+              You Might Also Like
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {relatedArticles.map((related) => (
+                <ArticleCard key={related.id} article={related} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+    </>
+  );
+}
