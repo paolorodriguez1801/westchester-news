@@ -5,10 +5,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL || "https://westchesternewstoday.com";
 
-  const [articleSlugs, categorySlugs] = await Promise.all([
-    getAllArticleSlugs(),
-    getAllCategorySlugs(),
-  ]);
+  let articleSlugs: { slug: string; published_at: string }[] = [];
+  let categorySlugs: { slug: string }[] = [];
+
+  try {
+    [articleSlugs, categorySlugs] = await Promise.all([
+      getAllArticleSlugs(),
+      getAllCategorySlugs(),
+    ]);
+  } catch {
+    // DB not available during build — return only the home entry
+  }
 
   const home: MetadataRoute.Sitemap = [
     {
