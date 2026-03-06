@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createArticle, getCategoryBySlug } from "@/lib/db/queries";
-import { slugify, generateTitleHash } from "@/lib/utils";
+import { slugify, generateSourceHash } from "@/lib/utils";
 
 export async function POST(request: NextRequest) {
   const apiKey = request.headers.get("x-api-key");
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
   }
 
   const slug = slugify(title) + "-" + Date.now().toString(36);
-  const titleHash = generateTitleHash(title);
+  const titleHash = generateSourceHash(sourceUrl);
 
   try {
     const article = await createArticle({
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
 
     if (message.includes("title_hash")) {
       return NextResponse.json(
-        { error: "Duplicate article: a story with this title already exists" },
+        { error: "Duplicate article: a story from this source URL already exists" },
         { status: 409 }
       );
     }

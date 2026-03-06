@@ -10,13 +10,8 @@ export function slugify(text: string): string {
     .substring(0, 200);
 }
 
-export function generateTitleHash(title: string): string {
-  const normalized = title
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-  return crypto.createHash("sha256").update(normalized).digest("hex");
+export function generateSourceHash(sourceUrl: string): string {
+  return crypto.createHash("md5").update(sourceUrl).digest("hex");
 }
 
 export function formatDate(dateString: string): string {

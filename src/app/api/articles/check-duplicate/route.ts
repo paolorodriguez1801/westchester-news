@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkDuplicate } from "@/lib/db/queries";
-import { generateTitleHash } from "@/lib/utils";
+import { generateSourceHash } from "@/lib/utils";
 
 export async function POST(request: NextRequest) {
   const apiKey = request.headers.get("x-api-key");
@@ -15,16 +15,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const title = body.title as string;
-  if (!title) {
+  const sourceUrl = body.source_url as string;
+  if (!sourceUrl) {
     return NextResponse.json(
-      { error: "Missing required field: title" },
+      { error: "Missing required field: source_url" },
       { status: 400 }
     );
   }
 
-  const titleHash = generateTitleHash(title);
-  const result = await checkDuplicate(titleHash);
+  const hash = generateSourceHash(sourceUrl);
+  const result = await checkDuplicate(hash);
 
   return NextResponse.json(result);
 }
