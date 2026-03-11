@@ -5,7 +5,8 @@ export const revalidate = 3600;
 export async function GET() {
   const sql = neon(process.env.DATABASE_URL!);
 
-  let articles: { slug: string; title: string; published_at: string }[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let articles: any[] = [];
 
   try {
     articles = await sql`
