@@ -23,8 +23,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const hash = generateSourceHash(sourceUrl);
-  const result = await checkDuplicate(hash);
-
-  return NextResponse.json(result);
+  try {
+    const hash = generateSourceHash(sourceUrl);
+    const result = await checkDuplicate(hash);
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error("Error checking duplicate:", error);
+    // Si la BD falla, asumimos que NO es duplicado para no bloquear el flujo
+    return NextResponse.json({ isDuplicate: false });
+  }
 }
