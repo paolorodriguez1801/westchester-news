@@ -1,6 +1,8 @@
 import { MetadataRoute } from "next";
 import { getAllArticleSlugs, getAllCategorySlugs } from "@/lib/db/queries";
 
+export const revalidate = 3600; // se regenera cada hora ← LÍNEA NUEVA
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL || "https://westchesternewstoday.com";
